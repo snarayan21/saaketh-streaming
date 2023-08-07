@@ -34,6 +34,8 @@ def get_shuffle_py1b(shard_sizes: NDArray[np.int64],
     Returns:
         NDArray[np.int64]: 1:1 mapping of sample ID to shuffled sample ID.
     """
+
+    block_size = int(block_size)
     # Create each shard's sample ID span (begin, end excl).
     spans = []
     num_samples = 0
@@ -71,7 +73,7 @@ def get_shuffle_py1b(shard_sizes: NDArray[np.int64],
             ids[offset:offset + span_size] = np.arange(begin, end)
             offset += span_size
         # shuffle within each block, but don't shuffle past the canonical node boundary
-        for start in range(super_offset, offset, int(block_size)):
+        for start in range(super_offset, offset, block_size):
             stop = min(start + block_size, offset)
             epoch_rng.shuffle(ids[start:stop])
 

@@ -49,8 +49,6 @@ def get_shuffle_py1br(shard_sizes: NDArray[np.int64],
     # Break the shard spans at canonical node boundaries.
     spans, node_spans = divide_spans(spans, num_samples, num_canonical_nodes)
 
-    print('node spans: ', node_spans)
-
     # Shuffle the span ordering within each canonical node uniquely to this epoch.
     epoch_rng = np.random.default_rng(seed + epoch)
     for node_start_span, node_stop_span in node_spans:

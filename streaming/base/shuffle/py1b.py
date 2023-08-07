@@ -71,6 +71,9 @@ def get_shuffle_py1b(shard_sizes: NDArray[np.int64],
             ids[offset:offset + span_size] = np.arange(begin, end)
             offset += span_size
         # shuffle within each block, but don't shuffle past the canonical node boundary
+        print("super_offset type", type(super_offset))
+        print("offset type", type(offset))
+        print("block_size type", type(block_size))
         for start in range(super_offset, offset, block_size):
             stop = min(start + block_size, offset)
             epoch_rng.shuffle(ids[start:stop])

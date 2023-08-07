@@ -778,8 +778,6 @@ class StreamingDataset(Array, IterableDataset):
                                  self.batch_size, sample_in_epoch)
 
         # If we need to shuffle, shuffle in a node-aware and *underlying* shard-aware way.
-        print("shuffle block size: ", self.shuffle_block_size)
-        print("type of shuffle block size", type(self.shuffle_block_size))
         if self.shuffle:
             shuffle = get_shuffle(self.shuffle_algo, shuffle_units, self.num_canonical_nodes,
                                   self.shuffle_seed, epoch, self.shuffle_block_size)

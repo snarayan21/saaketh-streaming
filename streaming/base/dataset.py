@@ -1196,7 +1196,7 @@ class StreamingDataset(Array, IterableDataset):
                 # ensure the shard file is downloaded, then try to access the sample again.
                 # Loops because it may become evicted in the meantime.
                 errors.append(str(e))
-                self.prepare_shard(shard_id)
+                self.prepare_shard_log(shard_id)
         else:
             # Main process failed. Let the threads know to terminate.
             if hasattr(self, '_event'):
@@ -1331,7 +1331,7 @@ class StreamingDataset(Array, IterableDataset):
             # During cold shard eviction, shard state might go in the reverse direction. If a shard
             # is missing while fetching a sample, download it.
             if self._shard_states[shard_id] == _ShardState.REMOTE:
-                self.prepare_shard(shard_id, False)
+                self.prepare_shard_log(shard_id, False)
             # Wait for a shard file to download completely.
             while self._shard_states[shard_id] != _ShardState.LOCAL:
                 sleep(TICK)

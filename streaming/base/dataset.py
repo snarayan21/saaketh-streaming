@@ -18,6 +18,7 @@ from filelock import FileLock
 from numpy.typing import NDArray
 from torch import distributed as dist
 from torch.utils.data import IterableDataset
+import wandb
 
 from streaming.base.array import Array
 from streaming.base.constant import (BARRIER, BARRIER_FILELOCK, CACHE_FILELOCK, CACHE_USAGE,
@@ -760,6 +761,9 @@ class StreamingDataset(Array, IterableDataset):
             NDArray[np.int64]: The epoch (num physical nodes, ranks per node, workers per rank,
                 batches per worker, batch size).
         """
+        # TODO: remove wandb functionality
+        wandb.init(entity='mosaic-ml', project='streaming-shuffling-algo', group='downloads')
+
         # Ensure that num_canonical_nodes has been set.
         if self.num_canonical_nodes is None:
             raise RuntimeError(f'`num_canonical_nodes` can never be None. ' +
@@ -1012,6 +1016,8 @@ class StreamingDataset(Array, IterableDataset):
 
             # Perform the download (shard will not be modified by others in PREPARING state).
             delta = stream.prepare_shard(shard)
+            
+            wandb.log({"shard_download": 1})
 
             # Download completed, so note the time and transition shard state to LOCAL.
             lock.acquire()
@@ -1177,7 +1183,6 @@ class StreamingDataset(Array, IterableDataset):
             # Download and decompress the shard for this sample, if not already done.
             shard_id, _ = self.spanner[sample_id]
             self.prepare_shard(shard_id, False)
-            print("DOWNLOADING SHARD", shard_id)
 
             # Step forward one sample.
             it.prepare_index += 1

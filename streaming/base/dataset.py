@@ -1187,7 +1187,8 @@ class StreamingDataset(Array, IterableDataset):
 
             # Download and decompress the shard for this sample, if not already done.
             shard_id, _ = self.spanner[sample_id]
-            self.prepare_shard(shard_id, False, world, shard_times)
+            print("preparing shard...")
+            self.prepare_shard(shard_id, blocking=False, world=world, shard_times=shard_times)
 
             # Step forward one sample.
             it.prepare_index += 1

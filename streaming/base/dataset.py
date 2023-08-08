@@ -969,7 +969,7 @@ class StreamingDataset(Array, IterableDataset):
         with self._cache_filelock:
             self._evict_coldest_shard()
 
-    def prepare_shard(self, shard_id: int, world: World = None, shard_times: list = None, blocking: bool = True) -> None:
+    def prepare_shard(self, shard_id: int, blocking: bool = True, world: World = None, shard_times: list = None) -> None:
         """Download a shard, either waiting or skipping if in progress by another worker.
 
         This method is multithread/multiprocess-safe.
@@ -1187,7 +1187,7 @@ class StreamingDataset(Array, IterableDataset):
 
             # Download and decompress the shard for this sample, if not already done.
             shard_id, _ = self.spanner[sample_id]
-            self.prepare_shard(world, shard_id, shard_times, False)
+            self.prepare_shard(shard_id, False, world, shard_times)
 
             # Step forward one sample.
             it.prepare_index += 1

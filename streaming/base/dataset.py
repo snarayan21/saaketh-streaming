@@ -18,7 +18,6 @@ from filelock import FileLock
 from numpy.typing import NDArray
 from torch import distributed as dist
 from torch.utils.data import IterableDataset
-import wandb
 
 from streaming.base.array import Array
 from streaming.base.constant import (BARRIER, BARRIER_FILELOCK, CACHE_FILELOCK, CACHE_USAGE,
@@ -34,6 +33,8 @@ from streaming.base.spanner import Spanner
 from streaming.base.stream import Stream
 from streaming.base.util import bytes_to_int, number_abbrev_to_int
 from streaming.base.world import World
+
+import time
 
 # An arbitrary time in the future, used for cold shard eviction.
 NEVER = np.iinfo(np.uint64).max
@@ -761,8 +762,6 @@ class StreamingDataset(Array, IterableDataset):
             NDArray[np.int64]: The epoch (num physical nodes, ranks per node, workers per rank,
                 batches per worker, batch size).
         """
-        # TODO: remove wandb functionality
-        wandb.init(entity='mosaic-ml', project='streaming-shuffling-algo', group='downloads')
 
         # Ensure that num_canonical_nodes has been set.
         if self.num_canonical_nodes is None:
@@ -970,7 +969,7 @@ class StreamingDataset(Array, IterableDataset):
         with self._cache_filelock:
             self._evict_coldest_shard()
 
-    def prepare_shard(self, shard_id: int, blocking: bool = True) -> None:
+    def prepare_shard(self, world: World, shard_id: int, shard_times: list, blocking: bool = True) -> None:
         """Download a shard, either waiting or skipping if in progress by another worker.
 
         This method is multithread/multiprocess-safe.
@@ -1016,9 +1015,12 @@ class StreamingDataset(Array, IterableDataset):
 
             # Perform the download (shard will not be modified by others in PREPARING state).
             delta = stream.prepare_shard(shard)
+            worker_unique =  (world.node, world.rank, world.worker)
+            shard_times.append(time.time_ns())
+            print("\nWORKER: ", worker_unique)
+            print(shard_times)
+            print("\n")
             
-            wandb.log({"shard_download": 1})
-
             # Download completed, so note the time and transition shard state to LOCAL.
             lock.acquire()
             self.cache_usage += delta
@@ -1151,6 +1153,8 @@ class StreamingDataset(Array, IterableDataset):
         Args:
             it (_Iterator): State of __iter__.
         """
+        shard_times = {}
+        world = World()
         # Download loop.
         while True:
             # If we've started a new epoch early (__iter__ was called again), exit this thread
@@ -1182,7 +1186,7 @@ class StreamingDataset(Array, IterableDataset):
 
             # Download and decompress the shard for this sample, if not already done.
             shard_id, _ = self.spanner[sample_id]
-            self.prepare_shard(shard_id, False)
+            self.prepare_shard(world, shard_id, shard_times, False)
 
             # Step forward one sample.
             it.prepare_index += 1

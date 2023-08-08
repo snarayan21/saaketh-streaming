@@ -969,7 +969,7 @@ class StreamingDataset(Array, IterableDataset):
         with self._cache_filelock:
             self._evict_coldest_shard()
 
-    def prepare_shard_log(self, shard_id: int, blocking: bool = True, world: World = None, shard_times: list = None) -> None:
+    def prepare_shard_log(self, shard_id: int,  world: World, blocking: bool = True) -> None:
         """Download a shard, either waiting or skipping if in progress by another worker.
 
         This method is multithread/multiprocess-safe.
@@ -1015,11 +1015,8 @@ class StreamingDataset(Array, IterableDataset):
 
             # Perform the download (shard will not be modified by others in PREPARING state).
             delta = stream.prepare_shard(shard)
-            worker_unique =  (world.node, world.rank, world.worker)
-            shard_times.append(time.time_ns())
-            print("\nWORKER: ", worker_unique)
-            print(shard_times)
-            print("\n")
+            worker_unique =  (world.worker_of_node, world.worker_of_rank, world.worker)
+            print("\nWORKER: ", worker_unique, ", TIME:", time.time_ns())
             
             # Download completed, so note the time and transition shard state to LOCAL.
             lock.acquire()
@@ -1175,6 +1172,7 @@ class StreamingDataset(Array, IterableDataset):
 
         sample = None
         errors = []
+        world = World()
         for _ in range(1 + retry):
             try:
                 # Shortcut path: just assume the shard is present. Using exceptions as control flow
@@ -1196,7 +1194,7 @@ class StreamingDataset(Array, IterableDataset):
                 # ensure the shard file is downloaded, then try to access the sample again.
                 # Loops because it may become evicted in the meantime.
                 errors.append(str(e))
-                self.prepare_shard_log(shard_id)
+                self.prepare_shard_log(shard_id, world)
         else:
             # Main process failed. Let the threads know to terminate.
             if hasattr(self, '_event'):
@@ -1243,7 +1241,6 @@ class StreamingDataset(Array, IterableDataset):
         Args:
             it (_Iterator): State of __iter__.
         """
-        shard_times = []
         world = World()
         # Download loop.
         while True:
@@ -1276,7 +1273,7 @@ class StreamingDataset(Array, IterableDataset):
 
             # Download and decompress the shard for this sample, if not already done.
             shard_id, _ = self.spanner[sample_id]
-            self.prepare_shard_log(shard_id, blocking=False, world=world, shard_times=shard_times)
+            self.prepare_shard_log(shard_id, world, blocking=False)
 
             # Step forward one sample.
             it.prepare_index += 1
@@ -1297,6 +1294,7 @@ class StreamingDataset(Array, IterableDataset):
         Args:
             it (_Iterator): State of __iter__.
         """
+        world = World()
         # Ready loop.
         while True:
             # If we've started a new epoch early (__iter__ was called again), exit this thread
@@ -1331,7 +1329,7 @@ class StreamingDataset(Array, IterableDataset):
             # During cold shard eviction, shard state might go in the reverse direction. If a shard
             # is missing while fetching a sample, download it.
             if self._shard_states[shard_id] == _ShardState.REMOTE:
-                self.prepare_shard_log(shard_id, False)
+                self.prepare_shard_log(shard_id, world, False)
             # Wait for a shard file to download completely.
             while self._shard_states[shard_id] != _ShardState.LOCAL:
                 sleep(TICK)

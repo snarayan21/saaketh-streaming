@@ -1153,7 +1153,7 @@ class StreamingDataset(Array, IterableDataset):
         Args:
             it (_Iterator): State of __iter__.
         """
-        shard_times = {}
+        shard_times = []
         world = World()
         # Download loop.
         while True:

@@ -67,13 +67,17 @@ def get_partitions_orig(num_samples: int,
         drop_first -= drop_first % num_physical_nodes
 
     # Divide the full dataset sample range into a sample range per canonical node.
+    # eqiuivalent to ceil(num_samples/num_canonical_nodes) --> padding may come into play
     samples_per_canonical_node = (num_samples + num_canonical_nodes - 1) // num_canonical_nodes
     node_ratio = 0
     padding = 0
     if num_canonical_nodes < num_physical_nodes:
         node_ratio = num_physical_nodes // num_canonical_nodes
+        # overflow is the amount of leftover samples we have after dividing samples over canonical nodes
+        # only an issue when num_canonical_nodes < num_physical_nodes
         overflow = samples_per_canonical_node % node_ratio
         if overflow:
+            # need to pad enough to make the samples per canonical node divisible by num_physical_nodes
             padding = node_ratio - overflow
     padded_samples_per_canonical_node = samples_per_canonical_node + padding
 

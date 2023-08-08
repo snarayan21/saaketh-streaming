@@ -22,6 +22,8 @@ from streaming.base.storage import download_file
 from streaming.base.util import wait_for_file_to_exist
 from streaming.base.world import World
 
+import time
+
 
 class Stream:
     """A dataset, or sub-dataset if mixing, from which we stream/cache samples.
@@ -384,6 +386,7 @@ class Stream:
             else:
                 # Download raw.
                 self._download_file(raw_info.basename)
+                print("DOWNLOAD:", time.time_ns())
                 delta += raw_info.bytes
 
                 # Validate.

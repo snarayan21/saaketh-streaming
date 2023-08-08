@@ -969,7 +969,7 @@ class StreamingDataset(Array, IterableDataset):
         with self._cache_filelock:
             self._evict_coldest_shard()
 
-    def prepare_shard(self, world: World, shard_id: int, shard_times: list, blocking: bool = True) -> None:
+    def prepare_shard(self, shard_id: int, world: World = None, shard_times: list = None, blocking: bool = True) -> None:
         """Download a shard, either waiting or skipping if in progress by another worker.
 
         This method is multithread/multiprocess-safe.
@@ -1015,11 +1015,12 @@ class StreamingDataset(Array, IterableDataset):
 
             # Perform the download (shard will not be modified by others in PREPARING state).
             delta = stream.prepare_shard(shard)
-            worker_unique =  (world.node, world.rank, world.worker)
-            shard_times.append(time.time_ns())
-            print("\nWORKER: ", worker_unique)
-            print(shard_times)
-            print("\n")
+            if world is not None and shard_times is not None:
+                worker_unique =  (world.node, world.rank, world.worker)
+                shard_times.append(time.time_ns())
+                print("\nWORKER: ", worker_unique)
+                print(shard_times)
+                print("\n")
             
             # Download completed, so note the time and transition shard state to LOCAL.
             lock.acquire()

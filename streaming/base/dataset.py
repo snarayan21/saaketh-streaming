@@ -969,7 +969,7 @@ class StreamingDataset(Array, IterableDataset):
         with self._cache_filelock:
             self._evict_coldest_shard()
 
-    def prepare_shard(self, shard_id: int, blocking: bool = True, world: World = None, shard_times: list = None) -> None:
+    def prepare_shard_log(self, shard_id: int, blocking: bool = True, world: World = None, shard_times: list = None) -> None:
         """Download a shard, either waiting or skipping if in progress by another worker.
 
         This method is multithread/multiprocess-safe.
@@ -1015,12 +1015,101 @@ class StreamingDataset(Array, IterableDataset):
 
             # Perform the download (shard will not be modified by others in PREPARING state).
             delta = stream.prepare_shard(shard)
-            if world is not None and shard_times is not None:
-                worker_unique =  (world.node, world.rank, world.worker)
-                shard_times.append(time.time_ns())
-                print("\nWORKER: ", worker_unique)
-                print(shard_times)
-                print("\n")
+            worker_unique =  (world.node, world.rank, world.worker)
+            shard_times.append(time.time_ns())
+            print("\nWORKER: ", worker_unique)
+            print(shard_times)
+            print("\n")
+            
+            # Download completed, so note the time and transition shard state to LOCAL.
+            lock.acquire()
+            self.cache_usage += delta
+            self._shard_access_times[shard_id] = time_ns()
+            self._shard_states[shard_id] = _ShardState.LOCAL
+            lock.release()
+        elif state == _ShardState.PREPARING:
+            # Someone else is currently downloading the shard. Release the lock for others to make
+            # progress.
+            lock.release()
+
+            # Do we wait on them?
+            if blocking:
+                # Wait for the shard to transition out of PREPARING state (to LOCAL, although it would
+                # be possible for it to become evicted again before a TICK has elapsed).
+                while self._shard_states[shard_id] == _ShardState.PREPARING:
+                    sleep(TICK)
+
+            # There is no need to update the last access time, because that will be set by the
+            # process that downloaded the shard.
+        elif state == _ShardState.LOCAL:
+            # Get the stream and shard.
+            stream_id = self.stream_per_shard[shard_id]
+            stream = self.streams[stream_id]
+            shard = self.shards[shard_id]
+
+            # We may need to decompress the shard (if local dir just contains zips).
+            raw_info, _ = shard.file_pairs[0]  # Each file pair is present in the same way.
+            raw_filename = os.path.join(stream.local, stream.split, raw_info.basename)  # Find raw.
+            if not os.path.isfile(raw_filename):  # Is raw missing?
+                self._shard_states[shard_id] = _ShardState.PREPARING  # Lock the shard.
+                lock.release()  # Unblock other workers.
+                delta = stream.prepare_shard(shard)  # Decompress and remove zip.
+                lock.acquire()  # Briefly take the lock back.
+                self._shard_states[shard_id] = _ShardState.LOCAL  # Restore shard state.
+                self.cache_usage += delta  # Update accounting.
+            self._shard_access_times[shard_id] = time_ns()  # Touch the shard.
+            lock.release()
+        else:
+            # Unknown state.
+            lock.release()
+            raise RuntimeError(f'Invalid shard state: {state}')
+
+    def prepare_shard(self, shard_id: int, blocking: bool = True) -> None:
+        """Download a shard, either waiting or skipping if in progress by another worker.
+
+        This method is multithread/multiprocess-safe.
+
+        If cache limit is enabled, this method may delete one or more other shards to make space
+        for this download.
+
+        Args:
+            shard_id (int): Shard to download.
+            blocking (bool): Whether to wait or skip if the shard is currently being downloaded by
+                someone else.
+        """
+        # Lock the cache. FileLocks contain threading Locks, which are not pickleable, which is
+        # incompatible with spawn, so must be created lazily.
+        if not hasattr(self, CACHE_FILELOCK):
+            self._cache_filelock = FileLock(self._cache_filelock_path)
+        lock = self._cache_filelock
+        lock.acquire()
+
+        # Get the state of the shard to download.
+        state = self._shard_states[shard_id]
+
+        # Which state is it in?
+        if state == _ShardState.REMOTE:
+            # If missing, transition state to preparing.
+            self._shard_states[shard_id] = _ShardState.PREPARING
+
+            # Get the stream and shard.
+            stream_id = self.stream_per_shard[shard_id]
+            stream = self.streams[stream_id]
+            shard = self.shards[shard_id]
+
+            # If cache_limit is enabled, we first may have to make space for the new shard.
+            if self.cache_limit:
+                # Evict one shard at a time until our download will stay under the cache limit.
+                # This means both the raw and zip forms of the shard due to decompressing.
+                shard_max_cache_usage = shard.get_max_size()
+                while self.cache_limit < self.cache_usage + shard_max_cache_usage:
+                    self._evict_coldest_shard()
+
+            # With the above preamble done, we can release the cache lock.
+            lock.release()
+
+            # Perform the download (shard will not be modified by others in PREPARING state).
+            delta = stream.prepare_shard(shard)
             
             # Download completed, so note the time and transition shard state to LOCAL.
             lock.acquire()
@@ -1187,8 +1276,7 @@ class StreamingDataset(Array, IterableDataset):
 
             # Download and decompress the shard for this sample, if not already done.
             shard_id, _ = self.spanner[sample_id]
-            print("preparing shard...")
-            self.prepare_shard(shard_id, blocking=False, world=world, shard_times=shard_times)
+            self.prepare_shard_log(shard_id, blocking=False, world=world, shard_times=shard_times)
 
             # Step forward one sample.
             it.prepare_index += 1

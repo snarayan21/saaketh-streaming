@@ -386,7 +386,7 @@ class Stream:
             else:
                 # Download raw.
                 self._download_file(raw_info.basename)
-                print("DOWNLOAD:", time.time_ns())
+                #print("DOWNLOAD:", time.time_ns())
                 delta += raw_info.bytes
 
                 # Validate.

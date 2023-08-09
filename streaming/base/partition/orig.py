@@ -88,14 +88,33 @@ def get_partitions_orig(num_samples: int,
     ids = ids.reshape(num_canonical_nodes, padded_samples_per_canonical_node)
 
     # Adjust row offsets to ignore the padding.
-    #
+    # Why? ids currently contains sample ids for all samples, including padded samples.
+    # However, we want to ignore padded samples (padding just for splitting evenly across physical nodes)
+    # and instead make sure that the real, unpadded samples are correctly indexed per canonical node.
+    # therefore we subtract the padding from each canonical node -- for example, if our ids array looks like:
+    # array([[ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9],
+    #        [10, 11, 12, 13, 14, 15, 16, 17, 18, 19],
+    #        [20, 21, 22, 23, 24, 25, 26, 27, 28, 29],
+    #        [30, 31, 32, 33, 34, 35, 36, 37, 38, 39]])
+    # and our padding is 2, meaning each canonical node has 2 padded samples, then our row_offsets array looks like:
+    # array([[0],
+    #        [2],
+    #        [4],
+    #        [6]])
+    # and subtracting, our ids array is now:
+    # array([[ 0,  1,  2,  3,  4,  5,  6,  7,  8,  9],
+    #        [ 8,  9, 10, 11, 12, 13, 14, 15, 16, 17],
+    #        [16, 17, 18, 19, 20, 21, 22, 23, 24, 25],
+    #        [24, 25, 26, 27, 28, 29, 30, 31, 32, 33]])
+    # which correctly accounts for the padded samples.
     # row_offsets: (canonical nodes, 1).
     row_offsets = np.arange(num_canonical_nodes) * padding
     row_offsets = np.expand_dims(row_offsets, 1)
     ids -= row_offsets
 
     # Reconfigure where each row starts iterating for irregular-sized rows.
-    #
+    # Addesses cases where num_samples isn't evenly divisble over num_canonical_nodes.
+    # 
     # row_starts: (canonical nodes, 1).
     row_starts = np.arange(num_canonical_nodes) * num_samples // num_canonical_nodes
     row_starts = np.expand_dims(row_starts, 1)

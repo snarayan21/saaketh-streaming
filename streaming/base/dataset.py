@@ -1015,8 +1015,8 @@ class StreamingDataset(Array, IterableDataset):
 
             # Perform the download (shard will not be modified by others in PREPARING state).
             delta = stream.prepare_shard(shard)
-            worker_unique =  (world.worker_of_node, world.worker_of_rank, world.worker)
-            print("\nWORKER: ", worker_unique, ", TIME:", time.time_ns())
+            #worker_unique =  (world.worker_of_node, world.worker_of_rank, world.worker)
+            #print("\nWORKER: ", worker_unique, ", TIME:", time.time_ns())
             
             # Download completed, so note the time and transition shard state to LOCAL.
             lock.acquire()
@@ -1194,7 +1194,8 @@ class StreamingDataset(Array, IterableDataset):
                 # ensure the shard file is downloaded, then try to access the sample again.
                 # Loops because it may become evicted in the meantime.
                 errors.append(str(e))
-                self.prepare_shard_log(shard_id, world)
+                #self.prepare_shard_log(shard_id, world)
+                self.prepare_shard(shard_id)
         else:
             # Main process failed. Let the threads know to terminate.
             if hasattr(self, '_event'):
@@ -1273,7 +1274,8 @@ class StreamingDataset(Array, IterableDataset):
 
             # Download and decompress the shard for this sample, if not already done.
             shard_id, _ = self.spanner[sample_id]
-            self.prepare_shard_log(shard_id, world, blocking=False)
+            #self.prepare_shard_log(shard_id, world, blocking=False)
+            self.prepare_shard(shard_id, blocking=False)
 
             # Step forward one sample.
             it.prepare_index += 1
@@ -1329,7 +1331,8 @@ class StreamingDataset(Array, IterableDataset):
             # During cold shard eviction, shard state might go in the reverse direction. If a shard
             # is missing while fetching a sample, download it.
             if self._shard_states[shard_id] == _ShardState.REMOTE:
-                self.prepare_shard_log(shard_id, world, False)
+                #self.prepare_shard_log(shard_id, world, False)
+                self.prepare_shard(shard_id, False)
             # Wait for a shard file to download completely.
             while self._shard_states[shard_id] != _ShardState.LOCAL:
                 sleep(TICK)

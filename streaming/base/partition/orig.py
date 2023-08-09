@@ -72,6 +72,7 @@ def get_partitions_orig(num_samples: int,
     node_ratio = 0
     padding = 0
     if num_canonical_nodes < num_physical_nodes:
+        # node ratio is how many physical nodes per canonical node.
         node_ratio = num_physical_nodes // num_canonical_nodes
         # overflow is the amount of leftover samples we have after dividing samples over canonical nodes
         # only an issue when num_canonical_nodes < num_physical_nodes
@@ -121,7 +122,9 @@ def get_partitions_orig(num_samples: int,
     ids += row_starts - ids[:, :1]
 
     # For short rows (length not evenly divisible), repeat the last ID to get even length.
-    #
+    # If length is not evenly divisible, some rows will have one less actual sample.
+    # we need to make sure to repeat the last actual sample to get an even length of actual
+    # samples per canonical node.
     # row_stops: (canonical nodes, 1).
     row_stops = np.arange(1, 1 + num_canonical_nodes) * num_samples // num_canonical_nodes
     row_stops = np.expand_dims(row_stops, 1)
@@ -130,6 +133,7 @@ def get_partitions_orig(num_samples: int,
 
     # If padding we needed, repeat samples to populate it.
     if padding:
+        # pending explanation. I don't get it yet
         ids[:, -padding:] = ids[:, -padding - node_ratio + 1 - padding:-padding - node_ratio + 1]
 
     # Flatten, drop samples that have already been seen, reshape back.
@@ -137,7 +141,9 @@ def get_partitions_orig(num_samples: int,
     # ids: (physical nodes, samples per node).
     ids = ids.transpose()
     ids = ids.flatten()
+    # drop_first happens if we're resuming mid epoch
     ids = ids[drop_first:]
+    # now split ids across num_physical_nodes
     ids = ids.reshape(-1, num_physical_nodes)
     ids = ids.transpose()
 
@@ -145,8 +151,10 @@ def get_partitions_orig(num_samples: int,
     # sample.
     #
     # ids: (physical nodes, samples per rank, ranks per node).
+    # this time, the overflow is the leftover samples after splitting samples per physical node over ranks (devices)
     overflow = ids.shape[1] % ranks_per_node
     if overflow:
+        # underflow is how many ranks have one less actual sample after splitting
         underflow = ranks_per_node - overflow
         last = ids[:, -ranks_per_node - underflow + 1:-ranks_per_node + 1]
         ids = np.concatenate([ids, last], 1)

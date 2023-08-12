@@ -59,7 +59,7 @@ def get_shuffle_py1br(shard_sizes: NDArray[np.int64],
     # Populate the global sample ID mapping, shuffling within each block within each node.
     ids = np.empty(num_samples, np.int64)
     node_stop_sample = 0
-    stagger = epoch_rng.integers(0, int(0.75 * block_size), (num_canonical_nodes,))
+    stagger = epoch_rng.integers(0, int(0.5 * block_size), (num_canonical_nodes,))
     for node, (node_start_span, node_stop_span) in enumerate(node_spans):
         node_start_sample = node_stop_sample
 
@@ -75,7 +75,7 @@ def get_shuffle_py1br(shard_sizes: NDArray[np.int64],
         blocks_end = node_start_sample
         node_stagger = stagger[node]
         while blocks_end < node_stop_sample:
-            rand_block_size = epoch_rng.integers(int(0.75 * block_size), int(1.25 * block_size))
+            rand_block_size = epoch_rng.integers(int(0.5 * block_size), int(1.5 * block_size))
             # don't want the block to start before the first sample of the node
             staggered_block_start = max(blocks_end - node_stagger, node_start_sample)
             # don't want the block to stop after the last sample of the node

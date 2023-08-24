@@ -1242,7 +1242,6 @@ class StreamingDataset(Array, IterableDataset):
         Args:
             it (_Iterator): State of __iter__.
         """
-        world = World()
         # Download loop.
         while True:
             # If we've started a new epoch early (__iter__ was called again), exit this thread
@@ -1262,7 +1261,7 @@ class StreamingDataset(Array, IterableDataset):
             # downloaded already, we wait and check again later.
             if self.predownload is not None:
                 samples_ahead = it.prepare_index - it.yield_index
-                if self.predownload <= samples_ahead:
+                if self.predownload < samples_ahead:
                     sleep(TICK)
                     continue
 

@@ -695,21 +695,38 @@ class StreamingDataset(Array, IterableDataset):
             # stream's shard offset in list of all shards from all streams
             stream_shard_offset = self.shard_offset_per_stream[stream_id]
             num_stream_shards = self.shards_per_stream[stream_id]
+            # the stream shards are in order -- each stream has a contiguous block of shards.
             stream_shard_ids = stream_shard_offset + np.arange(num_stream_shards)
 
             # Calculate choose per stream shard.
+            # samples_per_stream_shard is an array of samples per shard in the current stream
+            # that we get by indexing self.samples_per_shad by the current stream's stream_shard_ids
             samples_per_stream_shard = self.samples_per_shard[stream_shard_ids]
+            # total samples for the current stream is the sum of samples per shard in this stream
             stream_samples = sum(samples_per_stream_shard)
             # the number of items to choose from each stream (calculated during dataset initialization)
             stream_choose = self.streams[stream_id].choose
+            # if samples to choose is same as total samples in stream, we choose
+            # all samples from each shard in the stream as well.
             if stream_choose == stream_samples:
                 choose_per_stream_shard = samples_per_stream_shard
             else:
+                # if samples to choose is not equal, then instead we up/downsample based
+                # on the ratio between stream_choose and stream_samples
+                # choose_per_stream_shard is an array of the number of samples per shard,
+                # multiplied by the floor of ratio of stream_choose to stream_samples
                 choose_per_stream_shard = \
                     samples_per_stream_shard * stream_choose // stream_samples
+                # for any remaining samples we need to choose, we randomly select shards
+                # to take an additional sample from. This is why when we only select a small
+                # number of samples from a stream, we have to download a lot of shards --
+                # this is the problem that James's sampling diversity PR seeks to address.
                 shortfall = stream_choose - choose_per_stream_shard.sum()
                 indices = rng.choice(num_stream_shards, shortfall, False)
                 choose_per_stream_shard[indices] += 1
+                # now, choose_per_stream_shard is an array that tells us for each shard, how
+                # many samples we need to choose from it. this can be more, less, or equal to
+                # the number of samples the shard actually has. (up, same, down sampling)
 
             # Iterate over each shard of this stream.
             for shard_id, shard_samples, shard_choose in zip(stream_shard_ids,
@@ -728,9 +745,14 @@ class StreamingDataset(Array, IterableDataset):
                 shuffle_units.append(shard_shuffle_units)
 
                 # Calculate sample IDs of any full repeats.
+                # want to map from sample id during training to sample id in the shard
+                # shard_sample_offset is the offset of the samples from each shard.
+                # sample_ids achieves this by indexes that are training sample ids,
+                # and values that are shard sample ids.
                 shard_sample_offset = self.sample_offset_per_shard[shard_id]
                 num_full_repeats = shard_choose // shard_samples
                 if num_full_repeats:
+                    # all shard sample ids are repeated for each full repeat
                     full_repeat = shard_sample_offset + np.arange(shard_samples)
                     sample_ids += [full_repeat] * num_full_repeats
 

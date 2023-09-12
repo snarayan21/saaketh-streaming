@@ -117,7 +117,7 @@ def _check_and_find(streams_local: List[str], streams_remote: List[Union[str, No
             # We are unable to check if there is a conflict between the existing shared memory
             # local directories and the current local directories.
             # Problem: With this, we are skipping this check!!
-            pass
+            continue
         their_locals, _ = _unpack_locals(bytes(shm.buf))
         # Do not check for a conflicting local directories across existing shared memory if
         # remote directories are None. Get the next prefix.

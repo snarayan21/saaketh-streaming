@@ -14,17 +14,24 @@ from streaming.base import Stream
 
 
 def ingest_yaml(yaml_dict: Optional[dict] = None,
-                filepath: Optional[str] = None) -> tuple[Optional[int], int, Time, int, dict]:
+                filepath: Optional[str] = None,
+                nodes: Optional[int] = None,
+                devices: Optional[int] = None) -> tuple[Optional[int], int, Time, int, dict]:
     """Create SimulationDataset from yaml file and other needed args.
 
     Args:
         yaml_dict (Optional[dict]): yaml file already converted to a dictionary
         filepath (Optional[str]): path to yaml file
+        nodes (Optional[int]): number of physical nodes. Use as an override for the yaml.
+            Defaults to ``None``.
+        devices (Optional[int]): number of devices per node. Use as an override for the yaml.
+            Defaults to ``None``.
 
     Returns:
         tuple[Optional[int], Optional[int], Time, Optional[int], Optional[dict]]: total_devices,
             workers, max_duration, global_batch_size, train_dataset parameters from yaml
     """
+
     config = None
     # Read in the yaml file
     if filepath is not None:
@@ -38,8 +45,12 @@ def ingest_yaml(yaml_dict: Optional[dict] = None,
         raise ValueError('Must specify either filepath or yaml_dict.')
 
     # Get the number of devices (GPUs)
-    if 'compute' in config and 'gpus' in config['compute']:
+    if devices is None and 'compute' in config and 'gpus' in config['compute']:
         total_devices = int(config['compute']['gpus'])
+    elif devices is not None:
+        if nodes is None:
+            raise ValueError('nodes must be specified if devices is specified.')
+        total_devices = devices * nodes
     else:
         total_devices = None
 

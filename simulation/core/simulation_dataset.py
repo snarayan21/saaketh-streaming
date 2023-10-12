@@ -115,7 +115,7 @@ class SimulationDataset(StreamingDataset):
                  sampling_method: str = 'balanced',
                  sampling_granularity: int = 1,
                  batching_method: str = 'random') -> None:
-
+        
         # Time how long it takes for StreamingDataset instantiation
         t0 = time.time()
 
@@ -298,6 +298,16 @@ class SimulationDataset(StreamingDataset):
         # true proportion/repeat/choose, as well as the total epoch size.
         self.epoch_size = Stream.apply_weights(self.streams, self.samples_per_stream,
                                                epoch_size_value, self.shuffle_seed)
+        print(f'Total number of samples in epoch: {self.epoch_size}')
+        # Calculate the probability distribution of samples over streams.
+        stream_samples = []
+        for stream in self.streams:
+            stream_samples.append(stream.choose)
+        self.stream_samples = np.array(stream_samples)
+        self.stream_probabilities = self.stream_samples / self.epoch_size
+        for i, samples in enumerate(self.stream_samples):
+            print(f'\nSamples in stream {i}: {samples}')
+            print(f'Sampling probability from stream {i}: {self.stream_probabilities[i]}')  
 
         # Length (__len__) is the resampled epoch size divided over the number of devices.
         self.length = ceil(self.epoch_size / self.world.num_ranks)
@@ -396,6 +406,14 @@ class SimulationDataset(StreamingDataset):
             int: The dataset's batch size.
         """
         return self.batch_size
+    
+    def get_global_batch_size(self) -> int:
+        """Get the dataset's global batch size.
+
+        Returns:
+            int: The dataset's global batch size.
+        """
+        return self.batch_size * self.devices * self.nodes
 
     def get_num_shards(self) -> int:
         """Get the dataset's number of shards.
@@ -518,3 +536,27 @@ class SimulationDataset(StreamingDataset):
             str: The dataset's batching method.
         """
         return self.batching_method
+    
+    def get_stream_samples(self) -> NDArray:
+        """Get the dataset's stream samples in the epoch.
+
+        Returns:
+            NDArray: The dataset's stream samples in the epoch.
+        """
+        return self.stream_samples
+    
+    def get_stream_probabilities(self) -> NDArray:
+        """Get the dataset's stream probabilities in the epoch.
+
+        Returns:
+            NDArray: The dataset's stream probabilities in the epoch.
+        """
+        return self.stream_probabilities
+    
+    def get_stream_per_shard(self) -> NDArray:
+        """Get the dataset's stream per shard.
+
+        Returns:
+            NDArray: The dataset's stream per shard.
+        """
+        return self.stream_per_shard

@@ -238,6 +238,7 @@ class SimulationDataset(StreamingDataset):
             print('Processing index file for stream', stream_id + 1)
             stream_shards = stream.get_shards(self.world)
             num_stream_samples = sum(map(len, stream_shards))
+            print(f'stream {stream_id} samples {num_stream_samples}')
             index_filename = os.path.join(stream.local, stream.split, get_index_basename())
             index_filenames.append(index_filename)
             local_foldernames.append(stream.local)

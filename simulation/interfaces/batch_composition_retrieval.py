@@ -17,7 +17,7 @@ nodes = 2
 devices = 8
 
 experiment_names_filepaths = [
-    ("mpt-1b-py1br-NCN1-SBS100000-2stream-1", "/Users/saaketh.narayan/Desktop/yamls/shuffling_experiments/2_stream_sanity_check/2stream.yaml")
+    ("mpt-1b-py1br-NCN1-SBS100000-2stream-1", "/Users/saaketh.narayan/Desktop/yamls/shuffling_experiments/noshuffle-ascending-size/mpt-1b-noshuffle-ascendingsize-1.yaml")
     ]
 
 for experiment_name, filepath in experiment_names_filepaths:

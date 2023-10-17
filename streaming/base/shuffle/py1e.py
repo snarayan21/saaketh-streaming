@@ -94,6 +94,9 @@ def get_shuffle_py1e(shard_sizes: NDArray[np.int64],
             # This ensures that the span samples are only found in a max range of rand_block_size.
             cutoff = (rand_block_size - span_size) / 2
 
+            if cutoff < 0:
+                cutoff = 0
+
             # Make sure the lower bound of the range doesn't cross the start of the canonical node.
             lower_bound = max(-cutoff, -cn_sample_offset)
             # Make sure the upper bound of the range doesn't cross the end of the canonical node.

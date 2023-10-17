@@ -20,14 +20,16 @@ project_runs = api.runs(path=project_id, per_page=300)
 project_run_names = [run.name for run in project_runs]
 project_run_ids = [run.id for run in project_runs]
 
-run_groups = ["mpt-1b-py1br-NCN1-SBS100000-2stream-1"]
+run_groups = [
+    "mpt-1b-py1e-NCN4-SBS100000-random-1",
+    ]
 
 for run_group in run_groups:
 
     # get all the runs in the project corresponding to the run group
     run_names_ids = [(project_run_names[i], project_run_ids[i]) \
                      for i in range(len(project_run_names)) if run_group in project_run_names[i]]
-
+    
     # stitch together all resumptions for this run group
     print("Processing:", run_group)
     run_train_step_loss = {}
@@ -40,7 +42,12 @@ for run_group in run_groups:
         step = [s for s in step if s is not None]
         
         # if number of steps is less than 1000 and if run was not finished here, skip this run.
-        run_finished = (max(step) == 24800)
+        try:
+            run_finished = (max(step) == 24800)
+        except ValueError:
+            # ValueError here means that step is empty. Move on to next run.
+            continue
+
         if len(step) < 1000 and not run_finished:
             continue
 

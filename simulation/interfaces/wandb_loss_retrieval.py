@@ -21,7 +21,16 @@ project_run_names = [run.name for run in project_runs]
 project_run_ids = [run.id for run in project_runs]
 
 run_groups = [
-    "mpt-1b-py1e-NCN4-SBS100000-random-1",
+    "mpt-1b-py1s-NCN1-SBS20000-random-1",
+    "mpt-1b-py1s-NCN4-SBS20000-random-1",
+    "mpt-1b-py1s-NCN6-SBS20000-random-1",
+    "mpt-1b-py1s-NCN16-SBS20000-random-1",
+    "mpt-1b-py2s-NCN1-SBS20000-random-1",
+    "mpt-1b-py2s-NCN4-SBS20000-random-1",
+    "mpt-1b-py2s-NCN6-SBS20000-random-1",
+    "mpt-1b-py2s-NCN16-SBS20000-random-1",
+    "hero-1b-py1b-NCN16-SBS1000000-random-1",
+    "hero-1b-py1br-NCN16-SBS1000000-random-1"
     ]
 
 for run_group in run_groups:

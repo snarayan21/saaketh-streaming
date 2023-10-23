@@ -17,7 +17,16 @@ nodes = 2
 devices = 8
 
 experiment_names_filepaths = [
-    ("mpt-1b-py1e-NCN16-SBS1000000-stratified-1","/Users/saaketh.narayan/Desktop/yamls/shuffling_experiments/stratified_py1e/NCN16-SBS1000000/mpt-1b-py1e-NCN16-SBS1000000-stratified-1.yaml"),
+    ("mpt-1b-py1s-NCN1-SBS20000-random-1","/Users/saaketh.narayan/Desktop/yamls/shuffling_experiments/py1s/NCN1-SBS20000/mpt-1b-py1s-NCN1-SBS20000-random-1.yaml"),
+    ("mpt-1b-py1s-NCN4-SBS20000-random-1","/Users/saaketh.narayan/Desktop/yamls/shuffling_experiments/py1s/NCN4-SBS20000/mpt-1b-py1s-NCN4-SBS20000-random-1.yaml"),
+    ("mpt-1b-py1s-NCN6-SBS20000-random-1","/Users/saaketh.narayan/Desktop/yamls/shuffling_experiments/py1s/NCN6-SBS20000/mpt-1b-py1s-NCN6-SBS20000-random-1.yaml"),
+    ("mpt-1b-py1s-NCN16-SBS20000-random-1","/Users/saaketh.narayan/Desktop/yamls/shuffling_experiments/py1s/NCN16-SBS20000/mpt-1b-py1s-NCN16-SBS20000-random-1.yaml"),
+    ("mpt-1b-py2s-NCN1-SBS20000-random-1","/Users/saaketh.narayan/Desktop/yamls/shuffling_experiments/py2s/NCN1-SBS20000/mpt-1b-py2s-NCN1-SBS20000-random-1.yaml"),
+    ("mpt-1b-py2s-NCN4-SBS20000-random-1","/Users/saaketh.narayan/Desktop/yamls/shuffling_experiments/py2s/NCN4-SBS20000/mpt-1b-py2s-NCN4-SBS20000-random-1.yaml"),
+    ("mpt-1b-py2s-NCN6-SBS20000-random-1","/Users/saaketh.narayan/Desktop/yamls/shuffling_experiments/py2s/NCN6-SBS20000/mpt-1b-py2s-NCN6-SBS20000-random-1.yaml"),
+    ("mpt-1b-py2s-NCN16-SBS20000-random-1","/Users/saaketh.narayan/Desktop/yamls/shuffling_experiments/py2s/NCN16-SBS20000/mpt-1b-py2s-NCN16-SBS20000-random-1.yaml"),
+    ("hero-1b-py1b-NCN16-SBS1000000-random-1", "/Users/saaketh.narayan/Desktop/yamls/shuffling_experiments/hero_configs/hero-1b-py1b-NCN16-SBS1000000-random-1.yaml"),
+    ("hero-1b-py1br-NCN16-SBS1000000-random-1", "/Users/saaketh.narayan/Desktop/yamls/shuffling_experiments/hero_configs/hero-1b-py1br-NCN16-SBS1000000-random-1.yaml")
     ]
 
 for experiment_name, filepath in experiment_names_filepaths:

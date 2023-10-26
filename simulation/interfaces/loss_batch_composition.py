@@ -90,37 +90,37 @@ for experiment_name in experiment_names:
     # take exponential moving average of token counts over window
     token_counts_ema = []
     token_idx = 0
-    for token_composition in token_counts.T:
-        if token_idx % 10000 == 0:
-            print("processing token", token_idx)
-        token_idx += 1
-        token_counts_ema.append(exponential_weighted_moving_average(token_composition, 2/(window+1)))
-    token_counts_ema = np.array(token_counts_ema).T
-    token_probabilities_ema = token_counts_ema / np.sum(token_counts_ema, axis=1, keepdims=True)
-    token_probability_diffs_ema = token_probabilities[1:] - token_probabilities_ema[:-1]
-    token_probability_diffs_ema = np.insert(token_probability_diffs_ema, 0, token_probabilities[0], axis=0)
-    token_l1_metric_ema = probability_l1_metric_diffs(token_probability_diffs_ema)
-    token_l2_metric_ema = probability_l2_metric_diffs(token_probability_diffs_ema)
+    # for token_composition in token_counts.T:
+    #     if token_idx % 10000 == 0:
+    #         print("processing token", token_idx)
+    #     token_idx += 1
+    #     token_counts_ema.append(exponential_weighted_moving_average(token_composition, 2/(window+1)))
+    # token_counts_ema = np.array(token_counts_ema).T
+    # token_probabilities_ema = token_counts_ema / np.sum(token_counts_ema, axis=1, keepdims=True)
+    # token_probability_diffs_ema = token_probabilities[1:] - token_probabilities_ema[:-1]
+    # token_probability_diffs_ema = np.insert(token_probability_diffs_ema, 0, token_probabilities[0], axis=0)
+    # token_l1_metric_ema = probability_l1_metric_diffs(token_probability_diffs_ema)
+    # token_l2_metric_ema = probability_l2_metric_diffs(token_probability_diffs_ema)
 
     # make "new token" metric for each step over window range
-    new_tokens = []
-    for step in range(steps):
-        if step % 1000 == 0:
-            print("new tokens for step", step)
-        if step == 0:
-            # case when no window to compare to
-            new_tokens.append(0)
-        else:
-            if step < window:
-                # case when we have to limit window size
-                window_tokens = token_counts[0:step]
-            else:
-                # case when we can take the full window
-                window_tokens = token_counts[step-window:step]
-            window_no_token_indices = np.where(np.sum(window_tokens, axis=0) == 0)[0]
-            step_tokens_window_no_token_indices = token_counts[step][window_no_token_indices]
-            new_tokens.append(np.sum(step_tokens_window_no_token_indices, axis=0))
-    new_tokens = np.array(new_tokens)
+    # new_tokens = []
+    # for step in range(steps):
+    #     if step % 1000 == 0:
+    #         print("new tokens for step", step)
+    #     if step == 0:
+    #         # case when no window to compare to
+    #         new_tokens.append(0)
+    #     else:
+    #         if step < window:
+    #             # case when we have to limit window size
+    #             window_tokens = token_counts[0:step]
+    #         else:
+    #             # case when we can take the full window
+    #             window_tokens = token_counts[step-window:step]
+    #         window_no_token_indices = np.where(np.sum(window_tokens, axis=0) == 0)[0]
+    #         step_tokens_window_no_token_indices = token_counts[step][window_no_token_indices]
+    #         new_tokens.append(np.sum(step_tokens_window_no_token_indices, axis=0))
+    # new_tokens = np.array(new_tokens)
 
     # get the train loss curve for this experiment
     experiment_file = open(f'./run_losses/train_loss_{experiment_name}', 'rb')
@@ -167,7 +167,7 @@ for experiment_name in experiment_names:
     loss_difference = np.diff(loss_deviation, prepend=loss_deviation[0])
     
     start = 0
-    end = 5600
+    end = 5000
 
     # get the block stops for this experiment
     # shuffle_block_size = 1000000
@@ -181,7 +181,14 @@ for experiment_name in experiment_names:
     
     def plot_block_ranges(block_stops, global_batch_size, start, end, ax):
         step_stops = [block / global_batch_size for block in block_stops if block/global_batch_size > start and block/global_batch_size < end]
-        ax.vlines(step_stops, 0, 1, color='lightgray')
+        ax.vlines(step_stops, 0, 12, color='lightgray')
+
+    plt.title('train loss changes at shuffle block boundaries')
+    plt.xlabel('step')
+    plt.ylabel('train loss')
+    plot_block_ranges(block_stops, global_batch_size, start, end, plt)
+    plt.plot(np.arange(len(experiment_train_loss))[start:end], experiment_train_loss[start:end])
+    plt.show()
     
     # plot the l1 and l2 shuffle quality metrics for the experiment
     # plot the l1 shuffle quality metric on the x axis and the excess loss on the y axis as a scatter plot

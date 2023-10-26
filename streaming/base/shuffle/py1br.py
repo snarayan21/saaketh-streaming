@@ -92,6 +92,6 @@ def get_shuffle_py1br(shard_sizes: NDArray[np.int64],
             epoch_rng.shuffle(ids[block_start:block_stop])
             block_stops.append(block_stop)
 
-    print(block_stops)
+    #print(block_stops)
 
     return ids

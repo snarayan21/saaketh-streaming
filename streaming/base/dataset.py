@@ -324,7 +324,7 @@ class StreamingDataset(Array, IterableDataset):
                  num_canonical_nodes: Optional[int] = None,
                  batch_size: Optional[int] = None,
                  shuffle: bool = False,
-                 shuffle_algo: str = 'py1e',
+                 shuffle_algo: str = 'py1s',
                  shuffle_seed: int = 9176,
                  shuffle_block_size: Optional[int] = None,
                  batching_method: str = 'random') -> None:

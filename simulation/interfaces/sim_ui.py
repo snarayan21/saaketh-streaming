@@ -62,9 +62,6 @@ def submit_jobs(shuffle_quality: bool, dataset: SimulationDataset, time_per_samp
     total_batches = get_total_batches(dataset=dataset, max_duration=max_duration)
     node_internet_bandwidth = bytes_to_int(node_internet_bandwidth)
     cache_limit = dataset.get_cache_limit()
-    if not isinstance(node_internet_bandwidth, int):
-        raise ValueError(f'node_internet_bandwidth must be an integer. Got ' +
-                         f'{type(node_internet_bandwidth)} instead.')
     gen_sim = simulate(dataset,
                        time_per_sample,
                        node_internet_bandwidth,
